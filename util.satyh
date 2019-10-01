@@ -17,6 +17,13 @@ let-inline ctx \urllink url it =
     let it-url = read-inline ctx-url it in
     inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.link-to-uri-frame url None) it-url
 
+let-inline ctx \hypertarget name inner = 
+  inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.register-location-frame name) (read-inline ctx inner)                                               
+  
+let-inline ctx \hyperlink ?:borderopt name inner = 
+  let ctx-link = ctx |> set-text-color Color.blue in 
+  inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.link-to-location-frame name borderopt) (read-inline ctx-link inner)
+
 let find p lst =
   let-rec f acc p lst =
     match lst with
@@ -34,6 +41,11 @@ let-rec quicksort compare lst =
     let larger = List.filter ((fun x y -> not (compare x y)) x) xs in
       List.append (quicksort compare smallerequal) (x :: (quicksort compare larger))
 
+let-rec zip xs ys =
+  match (xs,ys) with
+  | (x :: xs, y :: ys) -> (x, y) :: zip xs ys
+  | _ -> []
+
 let tuple-compare compare x y = 
   let (x1, x2) = x in
   let (y1, y2) = y in
@@ -44,41 +56,18 @@ let tail lst =
   | 0 -> None
   | n -> List.nth (n - 1) lst
 
-let-rec split-sequential xs ys =
+let-rec split-sequential is-seq xs ys =
   match (xs, ys) with
   | (_, []) -> (xs, [])
-  | ([], y :: ys) -> split-sequential [y] ys
+  | ([], y :: ys) -> split-sequential is-seq [y] ys
   | (xs, y :: ys) -> 
     (match tail xs with
-    | None -> split-sequential [y] ys
+    | None -> split-sequential is-seq [y] ys
     | Some(tailx) ->
-      if (y - tailx) == 1 then split-sequential (List.append xs [y]) ys else (xs, y :: ys)
+      if is-seq tailx y then split-sequential is-seq (List.append xs [y]) ys else (xs, y :: ys)
     )
 
-let-rec group-sequential acc lst = 
-  match (split-sequential [] lst) with
+let-rec group-sequential is-seq acc lst = 
+  match (split-sequential is-seq [] lst) with
   | (xs, []) -> (List.append acc [xs])
-  | (xs, ys) -> group-sequential (List.append acc [xs]) ys
-
-let insert-dash lst = 
-  match lst with
-  | [] -> ` `
-  | x :: [] -> arabic x
-  | x1 :: x2 :: [] -> (arabic x1) ^ `, `# ^ (arabic x2)
-  | x :: xs -> 
-    (match (tail xs) with
-    | Some(y) -> (arabic x) ^ `–` ^ (arabic y)
-    | None -> ` `
-    )
-
-let join-string-list separator lst =
-  match lst with
-  | [] -> ` `
-  | x :: xs -> 
-  let f y z = y ^ separator ^ z in
-    List.fold-left f x xs
-
-let list-to-string lst =
-  let groups = group-sequential [] lst in
-  let strlst = List.map insert-dash groups in 
-    join-string-list `, `#  strlst
+  | (xs, ys) -> group-sequential is-seq (List.append acc [xs]) ys

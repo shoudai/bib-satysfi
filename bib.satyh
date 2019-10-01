@@ -1,6 +1,7 @@
 @require: list
 @require: pervasives
 @require: vdecoset
+@require: annot
 
 @import: util
 
@@ -70,12 +71,40 @@ let get-bib-number key =
     let _ = add-bib key in
       List.length (!keys-cite)
 
+let-inline ctx \cite-link num key = 
+  let it = embed-string (arabic num) in
+    read-inline ctx {\hyperlink(key){#it;}}
 
-let cite-style keys = `[` ^ (list-to-string keys) ^ `]`
+let-inline ctx \group-to-it group = 
+  match group with
+  | [] -> inline-nil
+  | (num, key) :: [] -> read-inline ctx {\cite-link(num)(key);}
+  | (num1, key1) :: xs -> 
+    (match tail xs with
+    | Some(num2, key2) -> read-inline ctx {\cite-link(num1)(key1);–\cite-link(num2)(key2);}
+    | None -> inline-nil
+    )
+
+let-rec join-itlist ctx lst = 
+  match lst with
+  | [] -> inline-nil
+  | g :: [] -> read-inline ctx {\group-to-it(g);}
+  | g :: gs -> read-inline ctx {\group-to-it(g);,\ } ++ (join-itlist ctx gs)
+
+let is-seq-num x y = 
+  let (numx, _) = x in
+  let (numy, _) = y in
+    numy - numx == 1
+
+
+let cite-style ctx ib = (read-inline ctx {[}) ++ ib ++ (read-inline ctx {]})
 
 let-inline ctx \cite keys =
   let nums = List.map get-bib-number keys in
-    read-inline ctx (embed-string (cite-style (quicksort (>=) nums)))
+  let numkeys = quicksort (tuple-compare (>=)) (zip nums keys) in
+  let groups = group-sequential is-seq-num [] numkeys in
+  let ib = join-itlist ctx groups in
+    cite-style ctx ib
 
 let key-same key x = 
   let (x1, x2) = x in
@@ -114,11 +143,12 @@ let join-authors lst =
     in
       convert-author str str-last
 
-let bib-entry ctx cite-num ib-main =
-  let ib-num = read-inline ctx (embed-string (`[` ^ arabic cite-num ^ `] `#)) in
+let bib-entry ctx index key ib-main =
+  let ib-num = read-inline ctx (embed-string (`[` ^ arabic index ^ `] `#)) in
+  let linked-num = inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.register-location-frame key) ib-num in
   let ib =
-    inline-skip (0pt -' get-natural-width ib-num)
-      ++ ib-num ++ ib-main ++ inline-fil
+    inline-skip (0pt -' get-natural-width linked-num)
+      ++ linked-num ++ ib-main ++ inline-fil
   in
   let pads = (bib-left-padding, 0pt, 0pt, 0pt) in
   block-frame-breakable ctx pads VDecoSet.empty (fun ctx -> line-break true true ctx ib)
@@ -161,7 +191,8 @@ let make-list ctx bibs =
     match bib with
     | Some(x) ->
       let it = list-style ctx x in
-        bbacc +++ bib-entry ctx index it
+      let (key, _) = x in
+        bbacc +++ bib-entry ctx index key it
     | None -> bbacc
   )) block-nil
 
