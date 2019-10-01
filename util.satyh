@@ -1,0 +1,84 @@
+@require: list
+@require: annot
+
+let-inline ctx \italic it =
+  let ctx-italic = set-font Latin (`Junicode-it`, 1.0, 0.0) ctx in
+    read-inline ctx-italic it
+
+let-inline ctx \bold it = 
+  let ctx-bold = set-font Latin (`Junicode-b`, 1.0, 0.0) ctx in
+    read-inline ctx-bold it
+
+let-inline ctx \urllink url it = 
+  match url with 
+  | None -> read-inline ctx it
+  | Some(url) -> 
+    let ctx-url = ctx |> set-text-color Color.blue in 
+    let it-url = read-inline ctx-url it in
+    inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.link-to-uri-frame url None) it-url
+
+let find p lst =
+  let-rec f acc p lst =
+    match lst with
+    | [] -> -1
+    | x :: xs -> if p x then acc else f (acc + 1) p xs
+  in 
+  let index = f 0 p lst in
+    if index == -1 then None else Some(index)
+
+let-rec quicksort compare lst =
+  match lst with
+  | [] -> []
+  | (x :: xs) -> 
+    let smallerequal = List.filter (compare x) xs in
+    let larger = List.filter ((fun x y -> not (compare x y)) x) xs in
+      List.append (quicksort compare smallerequal) (x :: (quicksort compare larger))
+
+let tuple-compare compare x y = 
+  let (x1, x2) = x in
+  let (y1, y2) = y in
+    if compare x1 y1 then true else false
+
+let tail lst =
+  match (List.length lst) with
+  | 0 -> None
+  | n -> List.nth (n - 1) lst
+
+let-rec split-sequential xs ys =
+  match (xs, ys) with
+  | (_, []) -> (xs, [])
+  | ([], y :: ys) -> split-sequential [y] ys
+  | (xs, y :: ys) -> 
+    (match tail xs with
+    | None -> split-sequential [y] ys
+    | Some(tailx) ->
+      if (y - tailx) == 1 then split-sequential (List.append xs [y]) ys else (xs, y :: ys)
+    )
+
+let-rec group-sequential acc lst = 
+  match (split-sequential [] lst) with
+  | (xs, []) -> (List.append acc [xs])
+  | (xs, ys) -> group-sequential (List.append acc [xs]) ys
+
+let insert-dash lst = 
+  match lst with
+  | [] -> ` `
+  | x :: [] -> arabic x
+  | x1 :: x2 :: [] -> (arabic x1) ^ `, `# ^ (arabic x2)
+  | x :: xs -> 
+    (match (tail xs) with
+    | Some(y) -> (arabic x) ^ `–` ^ (arabic y)
+    | None -> ` `
+    )
+
+let join-string-list separator lst =
+  match lst with
+  | [] -> ` `
+  | x :: xs -> 
+  let f y z = y ^ separator ^ z in
+    List.fold-left f x xs
+
+let list-to-string lst =
+  let groups = group-sequential [] lst in
+  let strlst = List.map insert-dash groups in 
+    join-string-list `, `#  strlst

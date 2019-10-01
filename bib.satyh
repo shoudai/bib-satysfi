@@ -1,0 +1,168 @@
+@require: list
+@require: pervasives
+@require: vdecoset
+
+@import: util
+
+let bib-left-padding = 20pt
+
+let-mutable num-cite <- 0
+let-mutable keys-cite <- []
+
+type bib-in-proceedings =
+  (|
+    author    : string list;
+    title     : inline-text;
+    booktitle : inline-text;
+    volume    : int;
+    number    : inline-text;
+    pages     : inline-text;
+    organization : inline-text;
+    year      : int;
+  |)
+
+type bib-article =
+  (|
+    author    : string list;
+    title     : inline-text;
+    journal   : inline-text;
+    volume    : int;
+    number    : inline-text option;
+    pages     : inline-text;
+    year      : int;
+    publisher : inline-text option;
+    url       : string option;
+  |)
+
+type bib-book =
+  (|
+    author    : string list;
+    title     : inline-text;
+    chapter   : inline-text option;
+    publisher : inline-text;
+    year      : int;
+  |)
+
+type bib-thesis =
+  (|
+    author    : string list;
+    title     : inline-text;
+    degree    : inline-text;
+    school    : inline-text;
+    year      : int;
+  |)
+
+type bib-item =
+  | InProceedings of bib-in-proceedings
+  | Article       of bib-article
+  | Book          of bib-book
+  | Thesis        of bib-thesis
+
+let add-bib key = 
+  let () = increment num-cite in
+  let () = keys-cite <- (List.append !keys-cite [key]) in
+    () % register-cross-reference (`bib-` ^ key) (arabic !num-cite)
+
+let get-bib-number key =
+  match find (string-same key) !keys-cite with 
+  | Some(n) -> n + 1
+  | None -> 
+    let _ = add-bib key in
+      List.length (!keys-cite)
+
+
+let cite-style keys = `[` ^ (list-to-string keys) ^ `]`
+
+let-inline ctx \cite keys =
+  let nums = List.map get-bib-number keys in
+    read-inline ctx (embed-string (cite-style (quicksort (>=) nums)))
+
+let key-same key x = 
+  let (x1, x2) = x in
+  if string-same key x1 then true else false
+
+let key-to-bib bibliography key = 
+  match find (key-same key) bibliography with
+  | None -> 
+  let warning = `Warning : \cite : '` ^ key ^ `' does not exist in biliography lists.` in
+  let warning = warning ^ #` Skip in reference list.` in
+  let () = display-message warning in 
+    (0, None)
+  | Some(n) -> (get-bib-number key, List.nth n bibliography)
+
+let keys-to-bibs bibliography = 
+  let bibs = List.map (key-to-bib bibliography) !keys-cite in
+    quicksort (tuple-compare (>=)) bibs
+
+let convert-author str str-last = 
+  let it = embed-string str in
+  let it-last = embed-string str-last in
+  match str-last with
+  | `et al.` -> {#it; \italic{et al.}}
+  | _ -> {#it; and #it-last;}
+
+let join-authors lst =
+  match List.reverse lst with
+  | []                 -> {}
+  | str :: []           -> embed-string str
+  | str2 :: str1 :: []   -> convert-author str1 str2
+  | str-last :: str-rest ->
+    let str =
+      str-rest |> List.fold-left (fun stracc str -> (
+        if string-same stracc ` ` then str else str ^ `, `# ^ stracc
+      )) ` `
+    in
+      convert-author str str-last
+
+let bib-entry ctx cite-num ib-main =
+  let ib-num = read-inline ctx (embed-string (`[` ^ arabic cite-num ^ `] `#)) in
+  let ib =
+    inline-skip (0pt -' get-natural-width ib-num)
+      ++ ib-num ++ ib-main ++ inline-fil
+  in
+  let pads = (bib-left-padding, 0pt, 0pt, 0pt) in
+  block-frame-breakable ctx pads VDecoSet.empty (fun ctx -> line-break true true ctx ib)
+
+let list-style ctx bib = 
+  match bib with
+  | (_, InProceedings(r)) ->
+    let authors = join-authors r#author in
+    let booktitle = r#booktitle in
+    let volume = embed-string (arabic r#volume) in
+    let number = r#number in
+    let pages = r#pages in
+    let organization = r#organization in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, in \italic{#booktitle;}, Vol. #volume;, #number; (#organization;, #year;), pp. #pages;.}
+  | (_, Article(r)) -> 
+    let authors = join-authors r#author in
+    let journal = r#journal in
+    let volume = embed-string (arabic r#volume) in
+    let pages = r#pages in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \urllink(r#url){#journal; \bold{#volume;}, #pages; (#year;)}.}
+  | (_, Book(r)) -> 
+    let authors = join-authors r#author in
+    let title = r#title in
+    let publisher = r#publisher in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \italic{#title;}, (#publisher;, #year;).}
+  | (_, Thesis(r)) ->
+    let authors = join-authors r#author in
+    let title = r#title in
+    let degree = r#degree in
+    let school = r#school in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \italic{#title;}, #degree;, #school; (#year;).}
+
+
+let make-list ctx bibs = 
+  bibs |> List.fold-left (fun bbacc (index, bib) -> (
+    match bib with
+    | Some(x) ->
+      let it = list-style ctx x in
+        bbacc +++ bib-entry ctx index it
+    | None -> bbacc
+  )) block-nil
+
+let-block ctx +references bibliography = make-list ctx (keys-to-bibs bibliography)

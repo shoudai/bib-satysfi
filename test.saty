@@ -1,0 +1,54 @@
+@require: stdjabook
+@import: util
+@import: bib
+@import: bib-content
+@require: code
+
+document (|
+  title = {Bib\SATySFi;的なやつ};
+  author = {shoudai};
+  show-title = true;
+  show-toc = false;
+|) '<
+    +section{さっそく例}<
+      +code(```
+        通常の引用 \cite([`dirac1928quantum`]);。2つ以上の場合はカンマで区切る
+        \cite([`PhysRevB.85.195320`;`novoselov2005two`]);。
+        3つ以上連番があるとハイフンでまとめる \cite([`Peskin`;`PhDThesis`;
+        `MasterThesis`]);。
+        以前に登場したキーが現れた場合は自動的にソートされる \cite([`PhDThesis`;`Peskin`;`
+        novoselov2005two`;`dirac1928quantum`]);。
+      ```);
+      +p{
+        通常の引用 \cite([`dirac1928quantum`]);。
+        2つ以上の場合はカンマで区切る \cite([`PhysRevLett.116.061102`;`novoselov2005two`]);。
+        3つ以上連番があるとハイフンでまとめる \cite([`Peskin`;`PhDThesis`;`MasterThesis`]);。
+        以前に登場したキーが現れた場合は自動的にソートされる \cite([`PhDThesis`;`Peskin`;`novoselov2005two`;`dirac1928quantum`]);。        
+      }
+      +code(```
+      @inproceedings{dirac1928quantum,
+        title={The quantum theory of the electron},
+        author={Dirac, Paul AM},
+        booktitle={Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences},
+        volume={117},
+        number={778},
+        pages={610--624},
+        year={1928},
+        organization={The Royal Society}
+      }
+
+      @book{Peskin,
+        title = {An Introduction to Quantum Field Theory},
+        author = {Peskin, M. E. and Schroeder, D. V.},
+        publisher={Westview Press},
+        year={2002}
+      }
+      etc...
+      ```);
+      +p{
+        .bibファイルからpythonで.satyファイルを生成。文献で出てきた順番にソート。
+        本文で\\citeしていないものは表示しない。
+      }
+    >
+    +references(bibliography);
+>
