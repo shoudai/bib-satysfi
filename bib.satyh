@@ -73,16 +73,16 @@ let get-bib-number key =
 
 let-inline ctx \cite-link num key = 
   let it = embed-string (arabic num) in
-    read-inline ctx {\hyperlink(key){#it;}}
+    read-inline ctx {\hyperlink(`bib-` ^ key){#it;}}
 
 let-inline ctx \group-to-it group = 
   match group with
   | [] -> inline-nil
   | (num, key) :: [] -> read-inline ctx {\cite-link(num)(key);}
-  | (num1, key1) :: xs -> 
+  | (num1, key1) :: (num2, key2) :: xs -> 
     (match tail xs with
-    | Some(num2, key2) -> read-inline ctx {\cite-link(num1)(key1);–\cite-link(num2)(key2);}
-    | None -> inline-nil
+    | Some(numlast, keylast) -> read-inline ctx {\cite-link(num1)(key1);–\cite-link(numlast)(keylast);}
+    | None -> read-inline ctx {\cite-link(num1)(key1);, \cite-link(num2)(key2);}
     )
 
 let-rec join-itlist ctx lst = 
@@ -145,7 +145,7 @@ let join-authors lst =
 
 let bib-entry ctx index key ib-main =
   let ib-num = read-inline ctx (embed-string (`[` ^ arabic index ^ `] `#)) in
-  let linked-num = inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.register-location-frame key) ib-num in
+  let linked-num = inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.register-location-frame (`bib-` ^ key)) ib-num in
   let ib =
     inline-skip (0pt -' get-natural-width linked-num)
       ++ linked-num ++ ib-main ++ inline-fil
