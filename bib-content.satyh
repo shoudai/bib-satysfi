@@ -2,61 +2,62 @@
 
 let bibliography = [
 (`dirac1928quantum`, InProceedings(|
-author = [ `P. A. Dirac` ];
-title = {The quantum theory of the electron};
-booktitle = {Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences};
-volume = 117;
-number = {778};
-pages = {610–624};
-organization = {The Royal Society};
-year = 1928;
+    author = [`P. A. Dirac`];
+    title = {The quantum theory of the electron};
+    booktitle = {Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences};
+    volume = 117;
+    number = {778};
+    pages = {610–624};
+    organization = {The Royal Society};
+    year = 1928
 |));
 
 (`Peskin`, Book(|
-author = [ `M. E. Peskin` ; `D. V. Schroeder` ];
-title = {An Introduction to Quantum Field Theory};
-chapter = None;
-year = 2002;
-publisher = {Westview Press};
+    author = [`M. E. Peskin`; `D. V. Schroeder`];
+    title = {An Introduction to Quantum Field Theory};
+    chapter = None;
+    publisher = {Westview Press};
+    year = 2002
 |));
 
 (`PhDThesis`, Thesis(|
-author = [ `F. Hoge` ];
-title = {Title of phd thesis};
-degree = {Ph.D. thesis};
-school = {Univ. of Tokyo};
-year = 2003;
+    author = [`F. Hoge`];
+    title = {Title of phd thesis};
+    degree = {Ph.D. thesis};
+    school = {Univ. of Tokyo};
+    year = 2003
 |));
 
 (`MasterThesis`, Thesis(|
-author = [ `F. Hoge` ];
-title = {Title of master thesis};
-degree = {Masters thesis};
-school = {Univ. of Tokyo};
-year = 2000;
+    author = [`F. Hoge`];
+    title = {Title of master thesis};
+    degree = {Masters thesis};
+    school = {Univ. of Tokyo};
+    year = 2000
 |));
 
 (`novoselov2005two`, Article(|
-author = [ `K. Novoselov` ; `A. K. Geim` ; `S. Morozov` ; `D. Jiang` ; `M. Katsnelson` ; `I. Grigorieva` ; `S. Dubonos` ; `A. Firsov` ];
-title = {Two-dimensional gas of massless Dirac fermions in graphene};
-journal = {Nature};
-volume = 438;
-number = Some({7065});
-pages = {197–200};
-year = 2005;
-publisher = Some({Nature Publishing Group});
-url       = Some(`https://www.nature.com/articles/nature04233`);
+    author = [`K. Novoselov`; `A. K. Geim`; `S. Morozov`; `D. Jiang`; `M. Katsnelson`; `I. Grigorieva`; `S. Dubonos`; `A. Firsov`];
+    title = {Two-dimensional gas of massless Dirac fermions in graphene};
+    journal = {Nature};
+    volume = 438;
+    number = Some({7065});
+    pages = {197–200};
+    year = 2005;
+    publisher = Some({Nature Publishing Group});
+    url = Some(`https://www.nature.com/articles/nature04233`)
 |));
 
 (`PhysRevLett.116.061102`, Article(|
-author = [ `B. P. Abbott` ; `et al.` ];
-title = {Observation of Gravitational Waves from a Binary Black Hole Merger};
-journal = {Phys. Rev. Lett.};
-volume = 116;
-number = None;
-pages = {061102};
-year = 2016;
-publisher = Some({American Physical Society});
-url       = Some(`https://link.aps.org/doi/10.1103/PhysRevLett.116.061102`);
+    author = [`B. P. Abbott`; `et al.`];
+    title = {Observation of Gravitational Waves from a Binary Black Hole Merger};
+    journal = {Phys. Rev. Lett.};
+    volume = 116;
+    number = None;
+    pages = {061102};
+    year = 2016;
+    publisher = Some({American Physical Society});
+    url = Some(`https://link.aps.org/doi/10.1103/PhysRevLett.116.061102`)
 |));
+
 ]
