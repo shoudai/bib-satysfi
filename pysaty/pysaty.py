@@ -47,6 +47,9 @@ def convert_str(x):
     if x is None:
         return None
     else:
+        for i in range(4,0,-1):
+            if '`' * i in x:
+                return ('`' * (i+1)) + str(x) + ('`' * (i+1))
         return '`' + str(x) + '`'
 
 def convert_inlinetext(x):
@@ -59,6 +62,7 @@ def convert_option(x):
         return 'None'
     else:
         return 'Some(' + convert(x.val) + ')'
+
 
 def convert_list(x):
     result = '['
