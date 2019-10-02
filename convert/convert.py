@@ -10,7 +10,11 @@ def author(item):
         if author == 'others, ':
             authors.append('et al.')
             break
-        name = bibtexparser.customization.splitname(author)
+        try:
+            name = bibtexparser.customization.splitname(author)
+        except bibtexparser.customization.InvalidName:
+            return [author[0:-2]]
+        
         result = ''
         for first in name['first']:
             for i, fst in enumerate(first.split('-')):
@@ -19,7 +23,7 @@ def author(item):
                 result += fst[0] + '.'
             result += ' '
         if name['von'] != []:
-            result += name["von"] + ' '
+            result += name['von'][0] + ' '
         result += name['last'][0]
         authors.append(result)
     return authors
@@ -36,6 +40,7 @@ def strs_to_ints(keys, x):
     for key in keys:
         x[key] = int(x[key])
     return x
+
 def strs_to_inlines(keys, x):
     for key in keys:
         try:
@@ -46,7 +51,10 @@ def strs_to_inlines(keys, x):
 
 def to_options(keys, x):
     for key in keys:
-        x[key] = pysaty.option(x[key])
+        try:
+            x[key] = pysaty.option(x[key])
+        except:
+            x[key] = pysaty.option(None)
     return x
 
 with open('references.bib') as bibtex_file:
