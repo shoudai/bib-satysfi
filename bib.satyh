@@ -65,7 +65,7 @@ let add-bib key =
     () % register-cross-reference (`bib-` ^ key) (arabic !num-cite)
 
 let get-bib-number key =
-  match find (string-same key) !keys-cite with 
+  match ListUtil.find (string-same key) !keys-cite with 
   | Some(n) -> n + 1
   | None -> 
     let _ = add-bib key in
@@ -80,7 +80,7 @@ let-inline ctx \group-to-it group =
   | [] -> inline-nil
   | (num, key) :: [] -> read-inline ctx {\cite-link(num)(key);}
   | (num1, key1) :: (num2, key2) :: xs -> 
-    (match tail xs with
+    (match ListUtil.tail xs with
     | Some(numlast, keylast) -> read-inline ctx {\cite-link(num1)(key1);–\cite-link(numlast)(keylast);}
     | None -> read-inline ctx {\cite-link(num1)(key1);, \cite-link(num2)(key2);}
     )
@@ -101,8 +101,8 @@ let cite-style ctx ib = (read-inline ctx {[}) ++ ib ++ (read-inline ctx {]})
 
 let-inline ctx \cite keys =
   let nums = List.map get-bib-number keys in
-  let numkeys = quicksort (tuple-compare (>=)) (zip nums keys) in
-  let groups = group-sequential is-seq-num [] numkeys in
+  let numkeys = ListUtil.quicksort (ListUtil.tuple-compare (>=)) (ListUtil.zip nums keys) in
+  let groups = ListUtil.group-sequential is-seq-num [] numkeys in
   let ib = join-itlist ctx groups in
     cite-style ctx ib
 
@@ -111,7 +111,7 @@ let key-same key x =
   if string-same key x1 then true else false
 
 let key-to-bib bibliography key = 
-  match find (key-same key) bibliography with
+  match ListUtil.find (key-same key) bibliography with
   | None -> 
   let warning = `Warning : \cite : '` ^ key ^ `' does not exist in biliography lists.` in
   let warning = warning ^ #` Skip in reference list.` in
@@ -121,7 +121,7 @@ let key-to-bib bibliography key =
 
 let keys-to-bibs bibliography = 
   let bibs = List.map (key-to-bib bibliography) !keys-cite in
-    quicksort (tuple-compare (>=)) bibs
+    ListUtil.quicksort (ListUtil.tuple-compare (>=)) bibs
 
 let convert-author str str-last = 
   let it = embed-string str in

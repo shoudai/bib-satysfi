@@ -24,50 +24,62 @@ let-inline ctx \hyperlink ?:borderopt name inner =
   let ctx-link = ctx |> set-text-color Color.blue in 
   inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.link-to-location-frame name borderopt) (read-inline ctx-link inner)
 
-let find p lst =
-  let-rec f acc p lst =
+module ListUtil 
+: sig
+  val find : ('a -> bool) -> 'a list -> int option
+  val quicksort : ('a -> 'a -> bool) -> 'a list -> 'a list
+  val zip : 'a list -> 'b list -> ('a * 'b) list
+  val tuple-compare : ('a -> 'a -> bool) -> ('a * 'b) -> ('a * 'b) -> bool
+  val tail : 'a list -> 'a option
+  val split-sequential : ('a -> 'a -> bool) -> 'a list -> 'a list -> ('a list * 'a list)
+  val group-sequential : ('a -> 'a -> bool) -> ('a list) list -> 'a list -> ('a list) list
+  end 
+= struct
+  let find p lst =
+    let-rec f acc p lst =
+      match lst with
+      | [] -> -1
+      | x :: xs -> if p x then acc else f (acc + 1) p xs
+    in 
+    let index = f 0 p lst in
+      if index == -1 then None else Some(index)
+
+  let-rec quicksort compare lst =
     match lst with
-    | [] -> -1
-    | x :: xs -> if p x then acc else f (acc + 1) p xs
-  in 
-  let index = f 0 p lst in
-    if index == -1 then None else Some(index)
+    | [] -> []
+    | (x :: xs) -> 
+      let smallerequal = List.filter (compare x) xs in
+      let larger = List.filter ((fun x y -> not (compare x y)) x) xs in
+        List.append (quicksort compare smallerequal) (x :: (quicksort compare larger))
 
-let-rec quicksort compare lst =
-  match lst with
-  | [] -> []
-  | (x :: xs) -> 
-    let smallerequal = List.filter (compare x) xs in
-    let larger = List.filter ((fun x y -> not (compare x y)) x) xs in
-      List.append (quicksort compare smallerequal) (x :: (quicksort compare larger))
+  let-rec zip xs ys =
+    match (xs,ys) with
+    | (x :: xs, y :: ys) -> (x, y) :: zip xs ys
+    | _ -> []
 
-let-rec zip xs ys =
-  match (xs,ys) with
-  | (x :: xs, y :: ys) -> (x, y) :: zip xs ys
-  | _ -> []
+  let tuple-compare compare x y = 
+    let (x1, x2) = x in
+    let (y1, y2) = y in
+      if compare x1 y1 then true else false
 
-let tuple-compare compare x y = 
-  let (x1, x2) = x in
-  let (y1, y2) = y in
-    if compare x1 y1 then true else false
+  let tail lst =
+    match (List.length lst) with
+    | 0 -> None
+    | n -> List.nth (n - 1) lst
 
-let tail lst =
-  match (List.length lst) with
-  | 0 -> None
-  | n -> List.nth (n - 1) lst
+  let-rec split-sequential is-seq xs ys =
+    match (xs, ys) with
+    | (_, []) -> (xs, [])
+    | ([], y :: ys) -> split-sequential is-seq [y] ys
+    | (xs, y :: ys) -> 
+      (match tail xs with
+      | None -> split-sequential is-seq [y] ys
+      | Some(tailx) ->
+        if is-seq tailx y then split-sequential is-seq (List.append xs [y]) ys else (xs, y :: ys)
+      )
 
-let-rec split-sequential is-seq xs ys =
-  match (xs, ys) with
-  | (_, []) -> (xs, [])
-  | ([], y :: ys) -> split-sequential is-seq [y] ys
-  | (xs, y :: ys) -> 
-    (match tail xs with
-    | None -> split-sequential is-seq [y] ys
-    | Some(tailx) ->
-      if is-seq tailx y then split-sequential is-seq (List.append xs [y]) ys else (xs, y :: ys)
-    )
-
-let-rec group-sequential is-seq acc lst = 
-  match (split-sequential is-seq [] lst) with
-  | (xs, []) -> (List.append acc [xs])
-  | (xs, ys) -> group-sequential is-seq (List.append acc [xs]) ys
+  let-rec group-sequential is-seq acc lst = 
+    match (split-sequential is-seq [] lst) with
+    | (xs, []) -> (List.append acc [xs])
+    | (xs, ys) -> group-sequential is-seq (List.append acc [xs]) ys
+  end
