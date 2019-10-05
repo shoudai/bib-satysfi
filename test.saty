@@ -1,6 +1,6 @@
 @require: stdjabook
 @import: util
-@import: bib
+@import: bib-style
 @import: bib-content
 @require: code
 

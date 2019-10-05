@@ -10,55 +10,6 @@ let bib-left-padding = 20pt
 let-mutable num-cite <- 0
 let-mutable keys-cite <- []
 
-type bib-in-proceedings =
-  (|
-    author    : string list;
-    title     : inline-text;
-    booktitle : inline-text;
-    volume    : int;
-    number    : inline-text;
-    pages     : inline-text;
-    organization : inline-text;
-    year      : int;
-  |)
-
-type bib-article =
-  (|
-    author    : string list;
-    title     : inline-text;
-    journal   : inline-text;
-    volume    : int;
-    number    : inline-text option;
-    pages     : inline-text;
-    year      : int;
-    publisher : inline-text option;
-    url       : string option;
-  |)
-
-type bib-book =
-  (|
-    author    : string list;
-    title     : inline-text;
-    chapter   : inline-text option;
-    publisher : inline-text;
-    year      : int;
-  |)
-
-type bib-thesis =
-  (|
-    author    : string list;
-    title     : inline-text;
-    degree    : inline-text;
-    school    : inline-text;
-    year      : int;
-  |)
-
-type bib-item =
-  | InProceedings of bib-in-proceedings
-  | Article       of bib-article
-  | Book          of bib-book
-  | Thesis        of bib-thesis
-
 let add-bib key = 
   let () = increment num-cite in
   let () = keys-cite <- (List.append !keys-cite [key]) in
@@ -87,24 +38,23 @@ let-inline ctx \group-to-it group =
 
 let-rec join-itlist ctx lst = 
   match lst with
-  | [] -> inline-nil
-  | g :: [] -> read-inline ctx {\group-to-it(g);}
-  | g :: gs -> read-inline ctx {\group-to-it(g);,\ } ++ (join-itlist ctx gs)
+  | [] -> {}
+  | g :: [] -> {\group-to-it(g);}
+  | g :: gs -> 
+    let it = join-itlist ctx gs in
+    {\group-to-it(g);,\ #it;}
 
 let is-seq-num x y = 
   let (numx, _) = x in
   let (numy, _) = y in
     numy - numx == 1
 
-
-let cite-style ctx ib = (read-inline ctx {[}) ++ ib ++ (read-inline ctx {]})
-
-let-inline ctx \cite keys =
+let cite ctx style keys =
   let nums = List.map get-bib-number keys in
   let numkeys = ListUtil.quicksort (ListUtil.tuple-compare (>=)) (ListUtil.zip nums keys) in
   let groups = ListUtil.group-sequential is-seq-num [] numkeys in
-  let ib = join-itlist ctx groups in
-    cite-style ctx ib
+  let it = join-itlist ctx groups in
+    style ctx it
 
 let key-same key x = 
   let (x1, x2) = x in
@@ -123,28 +73,9 @@ let keys-to-bibs bibliography =
   let bibs = List.map (key-to-bib bibliography) !keys-cite in
     ListUtil.quicksort (ListUtil.tuple-compare (>=)) bibs
 
-let convert-author str str-last = 
-  let it = embed-string str in
-  let it-last = embed-string str-last in
-  match str-last with
-  | `et al.` -> {#it; \italic{et al.}}
-  | _ -> {#it; and #it-last;}
-
-let join-authors lst =
-  match List.reverse lst with
-  | []                 -> {}
-  | str :: []           -> embed-string str
-  | str2 :: str1 :: []   -> convert-author str1 str2
-  | str-last :: str-rest ->
-    let str =
-      str-rest |> List.fold-left (fun stracc str -> (
-        if string-same stracc ` ` then str else str ^ `, `# ^ stracc
-      )) ` `
-    in
-      convert-author str str-last
-
-let bib-entry ctx index key ib-main =
-  let ib-num = read-inline ctx (embed-string (`[` ^ arabic index ^ `] `#)) in
+let bib-entry ctx listing-style index key ib-main =
+  let index-it = embed-string (arabic index) in
+  let ib-num = read-inline ctx (listing-style index-it) in
   let linked-num = inline-frame-breakable (0pt, 0pt, 0pt, 0pt) (Annot.register-location-frame (`bib-` ^ key)) ib-num in
   let ib =
     inline-skip (0pt -' get-natural-width linked-num)
@@ -153,47 +84,14 @@ let bib-entry ctx index key ib-main =
   let pads = (bib-left-padding, 0pt, 0pt, 0pt) in
   block-frame-breakable ctx pads VDecoSet.empty (fun ctx -> line-break true true ctx ib)
 
-let list-style ctx bib = 
-  match bib with
-  | (_, InProceedings(r)) ->
-    let authors = join-authors r#author in
-    let booktitle = r#booktitle in
-    let volume = embed-string (arabic r#volume) in
-    let number = r#number in
-    let pages = r#pages in
-    let organization = r#organization in
-    let year = embed-string (arabic r#year) in
-    read-inline ctx {#authors;, in \italic{#booktitle;}, Vol. #volume;, #number; (#organization;, #year;), pp. #pages;.}
-  | (_, Article(r)) -> 
-    let authors = join-authors r#author in
-    let journal = r#journal in
-    let volume = embed-string (arabic r#volume) in
-    let pages = r#pages in
-    let year = embed-string (arabic r#year) in
-    read-inline ctx {#authors;, \urllink(r#url){#journal; \bold{#volume;}, #pages; (#year;)}.}
-  | (_, Book(r)) -> 
-    let authors = join-authors r#author in
-    let title = r#title in
-    let publisher = r#publisher in
-    let year = embed-string (arabic r#year) in
-    read-inline ctx {#authors;, \italic{#title;}, (#publisher;, #year;).}
-  | (_, Thesis(r)) ->
-    let authors = join-authors r#author in
-    let title = r#title in
-    let degree = r#degree in
-    let school = r#school in
-    let year = embed-string (arabic r#year) in
-    read-inline ctx {#authors;, \italic{#title;}, #degree;, #school; (#year;).}
-
-
-let make-list ctx bibs = 
+let make-list ctx listing-style item-style bibs = 
   bibs |> List.fold-left (fun bbacc (index, bib) -> (
     match bib with
     | Some(x) ->
-      let it = list-style ctx x in
+      let it = item-style ctx x in
       let (key, _) = x in
-        bbacc +++ bib-entry ctx index key it
+        bbacc +++ bib-entry ctx listing-style index key it
     | None -> bbacc
   )) block-nil
 
-let-block ctx +references bibliography = make-list ctx (keys-to-bibs bibliography)
+let references ctx listing-style item-style bibliography = make-list ctx listing-style item-style (keys-to-bibs bibliography)

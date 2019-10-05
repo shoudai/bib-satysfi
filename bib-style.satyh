@@ -1,0 +1,116 @@
+@require: list
+@require: pervasives
+@require: vdecoset
+@require: annot
+
+@import: util
+@import: bib
+
+type bib-in-proceedings =
+  (|
+    author    : string list;
+    title     : inline-text;
+    booktitle : inline-text;
+    volume    : int;
+    number    : inline-text;
+    pages     : inline-text;
+    organization : inline-text;
+    year      : int;
+  |)
+
+type bib-article =
+  (|
+    author    : string list;
+    title     : inline-text;
+    journal   : inline-text;
+    volume    : int;
+    number    : inline-text option;
+    pages     : inline-text;
+    year      : int;
+    publisher : inline-text option;
+    url       : string option;
+  |)
+
+type bib-book =
+  (|
+    author    : string list;
+    title     : inline-text;
+    chapter   : inline-text option;
+    publisher : inline-text;
+    year      : int;
+  |)
+
+type bib-thesis =
+  (|
+    author    : string list;
+    title     : inline-text;
+    degree    : inline-text;
+    school    : inline-text;
+    year      : int;
+  |)
+
+type bib-item =
+  | InProceedings of bib-in-proceedings
+  | Article       of bib-article
+  | Book          of bib-book
+  | Thesis        of bib-thesis
+
+let cite-style ctx it = (read-inline ctx {[#it;]})
+
+let-inline ctx \cite keys = cite ctx cite-style keys
+
+let convert-author str str-last = 
+  let it = embed-string str in
+  let it-last = embed-string str-last in
+  match str-last with
+  | `et al.` -> {#it; \italic{et al.}}
+  | _ -> {#it; and #it-last;}
+
+let join-authors lst =
+  match List.reverse lst with
+  | []                 -> {}
+  | str :: []           -> embed-string str
+  | str2 :: str1 :: []   -> convert-author str1 str2
+  | str-last :: str-rest ->
+    let str =
+      str-rest |> List.fold-left (fun stracc str -> (
+        if string-same stracc ` ` then str else str ^ `, `# ^ stracc
+      )) ` `
+    in
+      convert-author str str-last
+
+let listing-style index-it = {[#index-it;]\ }
+
+let item-style ctx bib = 
+  match bib with
+  | (_, InProceedings(r)) ->
+    let authors = join-authors r#author in
+    let booktitle = r#booktitle in
+    let volume = embed-string (arabic r#volume) in
+    let number = r#number in
+    let pages = r#pages in
+    let organization = r#organization in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, in \italic{#booktitle;}, Vol. #volume;, #number; (#organization;, #year;), pp. #pages;.}
+  | (_, Article(r)) -> 
+    let authors = join-authors r#author in
+    let journal = r#journal in
+    let volume = embed-string (arabic r#volume) in
+    let pages = r#pages in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \urllink(r#url){#journal; \bold{#volume;}, #pages; (#year;)}.}
+  | (_, Book(r)) -> 
+    let authors = join-authors r#author in
+    let title = r#title in
+    let publisher = r#publisher in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \italic{#title;}, (#publisher;, #year;).}
+  | (_, Thesis(r)) ->
+    let authors = join-authors r#author in
+    let title = r#title in
+    let degree = r#degree in
+    let school = r#school in
+    let year = embed-string (arabic r#year) in
+    read-inline ctx {#authors;, \italic{#title;}, #degree;, #school; (#year;).}
+
+let-block ctx +references bibliography = references ctx listing-style item-style bibliography

@@ -60,7 +60,7 @@ def to_options(keys, x):
 with open('references.bib') as bibtex_file:
     bib_database = bibtexparser.load(bibtex_file)
 
-saty = """@import: bib
+saty = """@import: bib-style
 
 let bibliography = [
 """

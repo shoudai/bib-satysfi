@@ -1,4 +1,4 @@
-@import: bib
+@import: bib-style
 
 let bibliography = [
 (`dirac1928quantum`, InProceedings(|
