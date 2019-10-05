@@ -1,8 +1,9 @@
 @require: stdjabook
-@import: util
+@require: itemize
+@require: code
+
 @import: bib-style
 @import: bib-content
-@require: code
 
 document (|
   title = {Bib\SATySFi;的なやつ};
@@ -10,44 +11,59 @@ document (|
   show-title = true;
   show-toc = false;
 |) '<
-    +section{さっそく例}<
+    +section{やりたかったこと}<
+      +p{
+        BibTeXのように
+        \listing{
+          * .bibファイルを利用
+          * \\citeした順に番号付け
+          * \\cite複数の引数を与えた場合
+            ** 順番どおりにソート
+            ** 3つ以上の連番があるときは[1–3]のようにまとめる
+          * 文献リストは\\citeしたもののみを順番どおりに表示
+        }
+        できるようにしたかった。ついでにPDF内リンクやURLがある場合はリンクを追加するようにした。
+        \SATySFi;で外部ファイルを読み込む方法がわからなかったので、
+        まずPythonで.bib -\> .satyhと変換してから処理することに。
+      }
+    >
+    +section{.bibファイルの変換}<
+      +p{
+        Pythonのデータ構造を\SATySFi;のものに変換するmodule、pysatyを作成した。
+        まずbib-satysfi/pysatyにPAYTHONPATHを通し、path-to-bib-satysfi/convertにreference.bibを配置する。
+        以下を実行するとpath-to-bis-satysfi/bib-content.satyhに変換されたデータが入る。
+      }
       +code(```
-        通常の引用 \cite([`dirac1928quantum`]);。2つ以上の場合はカンマで区切る
-        \cite([`PhysRevB.85.195320`;`novoselov2005two`]);。
-        3つ以上連番があるとハイフンでまとめる \cite([`Peskin`;`PhDThesis`;
-        `MasterThesis`]);。
-        以前に登場したキーが現れた場合は自動的にソートされる \cite([`PhDThesis`;`Peskin`;`
-        novoselov2005two`;`dirac1928quantum`]);。
+        pip install bibtexparser
+        cd path-to-bis-satysfi/convert
+        python convert.py
       ```);
+      +p{
+        注意点としては
+        \listing{
+        * 日本語の著者の取り扱いやエスケープが適当なのでエラーが出る可能性あり
+        * エスケープする必要がある文献が多くない場合は、一部は手動で変換してからリスト結合した方が手間が少なさそう
+        }
+      }
+    >
+    +section{使い方の例} <
+      +code(```
+      +p{
+        %文中の引用
+        \cite([`key1`, `key2`, `key3`])
+      }
+      %文献リスト
+      +references(bibliography)
+      ```);
+      +p{
+        具体的にはtest.satyのように記述すると以下のように引用と文献リストが出力される。
+        また、bib-style.satyhの該当箇所を書き換えれば出力形式を変更できる。
+      }
       +p{
         通常の引用 \cite([`dirac1928quantum`]);。
         2つ以上の場合はカンマで区切る \cite([`PhysRevLett.116.061102`;`novoselov2005two`]);。
         3つ以上連番があるとハイフンでまとめる \cite([`Peskin`;`PhDThesis`;`MasterThesis`]);。
-        以前に登場したキーが現れた場合は自動的にソートされる \cite([`PhDThesis`;`Peskin`;`novoselov2005two`;`dirac1928quantum`]);。        
-      }
-      +code(```
-      @inproceedings{dirac1928quantum,
-        title={The quantum theory of the electron},
-        author={Dirac, Paul AM},
-        booktitle={Proceedings of the Royal Society of London A: Mathematical, Physical and Engineering Sciences},
-        volume={117},
-        number={778},
-        pages={610--624},
-        year={1928},
-        organization={The Royal Society}
-      }
-
-      @book{Peskin,
-        title = {An Introduction to Quantum Field Theory},
-        author = {Peskin, M. E. and Schroeder, D. V.},
-        publisher={Westview Press},
-        year={2002}
-      }
-      etc...
-      ```);
-      +p{
-        .bibファイルからpythonで.satyファイルを生成。文献で出てきた順番にソート。
-        本文で\\citeしていないものは表示しない。
+        以前に登場したキーが現れた場合は自動的にソートされる \cite([`PhDThesis`;`Peskin`;`novoselov2005two`;`dirac1928quantum`]);。
       }
     >
     +references(bibliography);
